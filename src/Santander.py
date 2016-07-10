@@ -1,5 +1,34 @@
 import mechanize
 import BeautifulSoup
+import re
+
+class Transaction:
+  def __init__(self, cols):
+      self.date = cols[0]
+      self.description = cols[1]
+      self.billpay = False
+      self.fasterpay = False
+      self.name = None
+      self.reference = None
+      
+      m = re.match(r"BILL PAYMENT FROM (.*), REFERENCE (.*)", self.description)
+      if m:
+        self.name, self.reference = m.groups()
+        self.billpay = True
+      
+      m = re.match(r"FASTER PAYMENTS RECEIPT REF\.(.*) FROM (.*)", self.description)
+      if m:
+        self.reference, self.name = m.groups()
+        self.fasterpay = True
+      
+      money_amount = cols[2] or cols[3]
+      assert money_amount[0] == u'\xa3'
+      self.amount = float(money_amount[1:])
+      if cols[3]:
+        self.amount = -self.amount
+     
+  def __str__(self):
+    return str(self.__dict__)
 
 class Santander:
 
@@ -52,11 +81,21 @@ class Santander:
     print(found)
     assert found==6
     self.response = br.submit()
-    
-    
+      
   def getTransactions(self, sort_code, account_number):
     """Download a transaction list for an account."""
     resp = self.br.open('https://retail.santander.co.uk/EBAN_Accounts_ENS/BtoChannelDriver.ssobto?dse_operationName=ViewTransactions').read()
-    soup = BeautifulSoup(resp, 'html.parser')
+    soup = BeautifulSoup.BeautifulSoup(resp)
+    tx_table = soup.findAll("table",  {"class": "cardlytics_history_table data"})[0]
+    rows = tx_table.findAll('tr')
+    for row in rows:
+      cols = row.findAll('td')
+      cols = [ele.text.strip() for ele in cols]
+      
+      if len(cols) == 0:
+        continue
+      
+      tx = Transaction(cols) 
+      yield tx
     
     
