@@ -4,30 +4,39 @@ import re
 
 class Transaction:
   def __init__(self, cols):
-      self.date = cols[0]
-      self.description = cols[1]
-      self.billpay = False
-      self.fasterpay = False
-      self.name = None
-      self.reference = None
-      
-      m = re.match(r"BILL PAYMENT FROM (.*), REFERENCE (.*)", self.description)
-      if m:
-        self.name, self.reference = m.groups()
-        self.billpay = True
-      
-      m = re.match(r"FASTER PAYMENTS RECEIPT REF\.(.*) FROM (.*)", self.description)
-      if m:
-        self.reference, self.name = m.groups()
-        self.fasterpay = True
-      
-      money_amount = cols[2] or cols[3]
-      assert money_amount[0] == u'\xa3'
-      self.amount = float(money_amount[1:])
-      if cols[3]:
-        self.amount = -self.amount
-     
-  def __str__(self):
+    self.date = cols[0]
+    self.description = cols[1]
+    self.billpay = False
+    self.fasterpay = False
+    self.name = None
+    self.reference = None
+    
+    m = re.match(r"BILL PAYMENT FROM (.*), REFERENCE (.*)", self.description)
+    if m:
+      self.name, self.reference = m.groups()
+      self.billpay = True
+    
+    m = re.match(r"FASTER PAYMENTS RECEIPT REF\.(.*) FROM (.*)", self.description)
+    if m:
+      self.reference, self.name = m.groups()
+      self.fasterpay = True
+    
+    money_amount = cols[2] or cols[3]
+    assert money_amount[0] == u'\xa3'
+    self.amount = float(money_amount[1:])
+    if cols[3]:
+      self.amount = -self.amount
+
+  def __eq__(self, other):
+    if isinstance(other, Transaction):
+      return ((self.description == other.description) and (self.amount == other.amount) and (self.date == other.date))
+    else:
+      return False
+
+  def __hash__(self):
+    return hash(self.description)
+
+  def __repr__(self):
     return str(self.__dict__)
 
 class Santander:
@@ -97,5 +106,28 @@ class Santander:
       
       tx = Transaction(cols) 
       yield tx
+  
+  def makePayment(self, from_sort_code, from_account_number, amount, to_name, to_sort_code, to_account_number, to_reference):
+    """  Not yet fully implemented.
+    
+    To set up:
+      Log in to santander in a browser
+      My details and settings
+      Change OTP service phone number
+      Put a number from https://www.textmagic.com/free-tools/receive-free-sms-online in.
+    """
+    assert amount > 0
+    amount_pounds = int(amount)
+    amount_pence = int((amount - amount_pounds)*100)
+    
+    # Receive SMS verification text
+    br2 = mechanize.Browser()
+    page_contents = br2.open("https://www.textmagic.com/free-tools/receive-free-sms-online/ajax/447520631303?page=1&perPage=10&query=&cmd=table").read()
+    for line in page_contents.splitlines():
+      m = re.match(r"This OTP is to MAKE A NEW PAYMENT for (.*) to account ending (.*). Don't share this code with anyone. Call immediately if you didn't request this (.*)</td>", line)
+      if m:
+        amt, acc, code = m.groups() 
+        if amt == u'\xa3' + str(amount_pounds) + "." + str(amount_pence):
+          pass
     
     
