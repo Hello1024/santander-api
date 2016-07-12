@@ -57,6 +57,7 @@ class Santander:
     self.questions = questions
     self.password = password
     self.security_number = security_number
+    self.cachedTransactionSoupTime = 0
     
   def _loginAndOpen(self, url):
     br = self.br
@@ -108,9 +109,18 @@ class Santander:
     """Unimplemented"""
     pass
 
-  def _getViewTransactionsSoup(self):
+
+  def _uncachedGetViewTransactionsSoup(self):
     self._loginAndOpen('https://retail.santander.co.uk/EBAN_Accounts_ENS/BtoChannelDriver.ssobto?dse_operationName=ViewTransactions')
     return BeautifulSoup.BeautifulSoup(self.response.read())
+
+  # We cache this by default because santanders data isn't always up to date
+  # and you'll get banned if a runaway script polls this every few seconds.
+  def _getViewTransactionsSoup(self):
+    if self.cachedTransactionSoupTime + 60 < time.time():
+      self.cachedTransactionSoupTime = time.time()
+      self.cachedTransactionSoup = self._uncachedGetViewTransactionsSoup()
+    return self.cachedTransactionSoup
   
   def getBalance(self):
     """Gets current and available balance.
