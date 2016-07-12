@@ -9,11 +9,11 @@ import Santander
 account = Santander.Santander('2511128396', {'What was your first school', 'London School'}, 'SecretPassword', '12345')
 
 # List recent transactions
-for tx in account.getTransactions('123212', '93729511'):
+for tx in account.getTransactions():
   print tx
 
 # Pay money out of my account
-account.makePayment('123212', '93729511', '10.00', '220877', '36829544', 'My Ref')
+account.makePayment('10.00', '220877', '36829544', 'My Ref')
 ```
 
 ## Todo
