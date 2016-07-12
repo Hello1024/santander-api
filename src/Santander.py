@@ -60,7 +60,6 @@ class Santander:
     
   def _loginAndOpen(self, url):
     br = self.br
-    # 'https://retail.santander.co.uk/LOGSUK_NS_ENS/BtoChannelDriver.ssobto?dse_operationName=LOGON'
     page1 = br.open(url)
     
     # Not now on the login page?  We're probably logged in!
@@ -105,11 +104,34 @@ class Santander:
     assert 'formCustomerID_1' not in [x.name for x in list(br.forms())], "Login probably failed"
     
 
-      
-  def getTransactions(self, from_sort_code, from_account_number):
-    """Download a transaction list for an account."""
+  def selectAccount(self, sort_code, account_number):
+    """Unimplemented"""
+    pass
+
+  def _getViewTransactionsSoup(self):
     self._loginAndOpen('https://retail.santander.co.uk/EBAN_Accounts_ENS/BtoChannelDriver.ssobto?dse_operationName=ViewTransactions')
-    soup = BeautifulSoup.BeautifulSoup(self.response.read())
+    return BeautifulSoup.BeautifulSoup(self.response.read())
+  
+  def getBalance(self):
+    """Gets current and available balance.
+
+    Returns:
+       (current_balance, available_balance) tuple.
+    """
+    soup = self._getViewTransactionsSoup()
+    bbox = soup.findAll("div",  {"class": "transationList"})[0]
+    m = re.match(ur".*Current balance:\xa3(\d+\.\d\d)Available balance:\xa3(\d+\.\d\d).*", bbox.getText())
+    assert m
+    return m.groups()
+    
+      
+  def getTransactions(self):
+    """Download a transaction list for an account.
+    
+    Returns:
+      A generator which yields Transaction objects for recent transactions.
+    """
+    soup = self._getViewTransactionsSoup()
     tx_table = soup.findAll("table",  {"class": "cardlytics_history_table data"})[0]
     rows = tx_table.findAll('tr')
     for row in rows:
@@ -122,8 +144,8 @@ class Santander:
       tx = Transaction(cols) 
       yield tx
   
-  def makePayment(self, from_sort_code, from_account_number, amount, to_name, to_sort_code, to_account_number, to_reference):
-    """ Makes a payment from your account to a remote account.
+  def makePayment(self, amount, to_name, to_sort_code, to_account_number, to_reference):
+    """Makes a payment from your account to a remote account.
     
     To set up:
       Log in to santander in a browser
