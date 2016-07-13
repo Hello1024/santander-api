@@ -122,6 +122,9 @@ class Santander:
       self.cachedTransactionSoupTime = time.time()
       self.cachedTransactionSoup = self._uncachedGetViewTransactionsSoup()
     return self.cachedTransactionSoup
+
+  def _resetCache(self):
+    self.cachedTransactionSoupTime = 0
   
   def getBalance(self):
     """Gets current and available balance.
@@ -221,5 +224,6 @@ class Santander:
 
       self.br['signOtpSetUpPay.sign.fields.0'] = verify_code
       self.response = self.br.submit(name='signOtpSetUpPay.actions.2', label='Confirm')
- 
+    
+    self._resetCache()
 
