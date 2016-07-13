@@ -50,7 +50,7 @@ class Santander:
       customer_id:   string representing a customer ID.  Eg. '12828282'
       questions:     dict of security questions and answers  Eg. {'Favourite food': 'pizza', 'favourite pet': 'cat'}
       password:      string account password
-      security_number:  5 digit account security number.
+      security_number:  5 digit account security number (string).
     """
     self.br = mechanize.Browser()
     self.br.addheaders = [('User-agent', 'Santander API (https://github.com/Hello1024/santander-api)')]
@@ -62,7 +62,7 @@ class Santander:
     
   def _loginAndOpen(self, url):
     br = self.br
-    page1 = br.open(url)
+    self.response = page1 = br.open(url)
     
     # Not now on the login page?  We're probably logged in!
     if 'formCustomerID_1' not in [x.name for x in list(br.forms())]:
@@ -144,6 +144,7 @@ class Santander:
     """
     soup = self._getViewTransactionsSoup()
     tx_table = soup.findAll("table",  {"class": "cardlytics_history_table data"})[0]
+    
     rows = tx_table.findAll('tr')
     for row in rows:
       cols = row.findAll('td')
