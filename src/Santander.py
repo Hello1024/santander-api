@@ -25,7 +25,7 @@ class Transaction:
     money_amount = cols[2] or cols[3]
     assert money_amount[0] == u'\xa3'
     self.amount_str = money_amount[1:]
-    self.amount = float(money_amount[1:])
+    self.amount = float(money_amount[1:].replace(',', ''))
     if cols[3]:
       self.amount = -self.amount
 
